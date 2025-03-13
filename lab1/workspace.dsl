@@ -1,12 +1,12 @@
 workspace {
-    name "Service Ordering Platform"
+    name "Social Network Platform"
     !identifiers hierarchical
 
     model {
         user = Person "User"
         admin = Person "Admin"
 
-        servicePlatform = softwareSystem "Service Ordering Platform" {
+        socialNetwork = softwareSystem "Social Network Platform" {
             users_service = container "User Service" {
                 technology "Python FastAPI"
                 tags "auth"
@@ -14,39 +14,29 @@ workspace {
                 component "User Profile Management"
             }
 
-            service_service = container "Service Service" {
+            wall_service = container "Wall Service" {
                 technology "Python FastAPI"
-                tags "service"
-                component "Service Listing"
-                component "Service Search"
-                component "Service Management"
+                tags "wall"
+                component "Post Management"
+                component "Wall Feed"
             }
 
-            order_service = container "Order Service" {
+            chat_service = container "Chat Service" {
                 technology "Python FastAPI"
-                tags "order"
-                component "Order Placement"
-                component "Order Tracking"
-                component "Payment Processing"
+                tags "chat"
+                component "Message Management"
+                component "Chat History"
             }
         }
 
-        user -> servicePlatform.users_service "Регистрация и аутентификация" "REST"
-        user -> servicePlatform.service_service "Просмотр услуг" "REST"
-        user -> servicePlatform.order_service "Управление заказами" "REST"
-        admin -> servicePlatform.service_service "Управление услугами" "REST"
-        admin -> servicePlatform.order_service "Отслеживание заказов" "REST"
+        user -> socialNetwork.users_service "Регистрация и аутентификация" "REST"
+        user -> socialNetwork.wall_service "Добавление записи на стену" "REST"
+        user -> socialNetwork.chat_service "Отправка сообщения" "REST"
+        admin -> socialNetwork.users_service "Управление пользователями" "REST"
         
-        servicePlatform.order_service -> servicePlatform.order_service "Обработка платежа" "REST"
-        servicePlatform.order_service -> servicePlatform.order_service "Обновление статуса заказа" "REST"
+        socialNetwork.wall_service -> socialNetwork.wall_service "Обновление ленты стены" "REST"
+        socialNetwork.chat_service -> socialNetwork.chat_service "Обновление истории чата" "REST"
         
-        servicePlatform.service_service -> servicePlatform.service_service "Обновление информации об услуге" "REST"
-        servicePlatform.service_service -> servicePlatform.service_service "Удаление услуги" "REST"
-        servicePlatform.service_service -> user "Услуга отображается в каталоге" "REST"
-
-        // Добавлена связь между Service Service и Order Service
-        servicePlatform.service_service -> servicePlatform.order_service "Инициация оформления заказа" "REST"
-
         deploymentEnvironment "PROD" {
             deploymentNode "Cloud" {
                 deploymentNode "Kubernetes Cluster" {
@@ -55,23 +45,23 @@ workspace {
                     
                     users_pod = deploymentNode "users-pod" {
                         instances 3
-                        containerInstance servicePlatform.users_service
+                        containerInstance socialNetwork.users_service
                     }
-                    services_pod = deploymentNode "services-pod" {
+                    wall_pod = deploymentNode "wall-pod" {
                         instances 3
-                        containerInstance servicePlatform.service_service
+                        containerInstance socialNetwork.wall_service
                     }
-                    orders_pod = deploymentNode "orders-pod" {
+                    chat_pod = deploymentNode "chat-pod" {
                         instances 3
-                        containerInstance servicePlatform.order_service
+                        containerInstance socialNetwork.chat_service
                     }
                     
                     api_gateway -> users_pod "Маршрутизация пользовательских запросов"
-                    api_gateway -> services_pod "Маршрутизация запросов к услугам"
-                    api_gateway -> orders_pod "Маршрутизация запросов к заказам"
+                    api_gateway -> wall_pod "Маршрутизация запросов к стене"
+                    api_gateway -> chat_pod "Маршрутизация запросов к чату"
                     users_pod -> db "Хранение данных пользователей"
-                    services_pod -> db "Хранение данных об услугах"
-                    orders_pod -> db "Хранение данных заказов"
+                    wall_pod -> db "Хранение данных стены"
+                    chat_pod -> db "Хранение данных чата"
                 }
             }
         }
@@ -80,28 +70,28 @@ workspace {
     views {
         themes default
 
-        systemContext servicePlatform "context" {
+        systemContext socialNetwork "context" {
             include *
             exclude relationship.tag==video
             autoLayout
         }
 
-        container servicePlatform "containers" {
+        container socialNetwork "containers" {
             include *
             autoLayout
         }
 
-        component servicePlatform.users_service "users_components" {
+        component socialNetwork.users_service "users_components" {
             include *
             autoLayout
         }
 
-        component servicePlatform.service_service "service_components" {
+        component socialNetwork.wall_service "wall_components" {
             include *
             autoLayout
         }
 
-        component servicePlatform.order_service "order_components" {
+        component socialNetwork.chat_service "chat_components" {
             include *
             autoLayout
         }
@@ -111,20 +101,18 @@ workspace {
             autoLayout
         }
 
-        dynamic servicePlatform "order_flow" "Обработка заказа от добавления услуги до завершения" {
+        dynamic socialNetwork "post_to_wall" "Процесс добавления записи на стену" {
             autoLayout lr
-            user -> servicePlatform.service_service "Добавление услуг в заказ"
-            servicePlatform.service_service -> servicePlatform.order_service "Инициация оформления заказа"
-            servicePlatform.order_service -> servicePlatform.order_service "Обработка платежа"
-            servicePlatform.order_service -> servicePlatform.order_service "Обновление статуса заказа"
-            servicePlatform.order_service -> user "Подтверждение оформления заказа"
+            user -> socialNetwork.wall_service "Добавление записи на стену"
+            socialNetwork.wall_service -> socialNetwork.wall_service "Обновление ленты стены"
+            socialNetwork.wall_service -> user "Подтверждение добавления записи"
         }
         
-        dynamic servicePlatform "service_management" "Управление услугами администратором" {
+        dynamic socialNetwork "send_message" "Процесс отправки сообщения" {
             autoLayout lr
-            admin -> servicePlatform.service_service "Добавление новой услуги"
-            servicePlatform.service_service -> servicePlatform.service_service "Обновление информации об услуге"
-            servicePlatform.service_service -> user "Услуга отображается в каталоге"
+            user -> socialNetwork.chat_service "Отправка сообщения"
+            socialNetwork.chat_service -> socialNetwork.chat_service "Обновление истории чата"
+            socialNetwork.chat_service -> user "Подтверждение отправки сообщения"
         }
     }
 }
