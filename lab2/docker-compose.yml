@@ -1,0 +1,16 @@
+version: '3.8'
+services:
+  user_service:
+    build: ./user_service
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./api_specs:/app/api_specs
+  wall_service:
+    build: ./wall_service
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./api_specs:/app/api_specs
+
+
