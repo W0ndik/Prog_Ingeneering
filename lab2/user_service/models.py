@@ -1,13 +1,14 @@
-from pydantic import BaseModel
+from sqlalchemy import Column, Integer, String, DateTime, func, Index
+from database import Base
 
-class User(BaseModel):
-    username: str
-    full_name: str
-    password: str
+class User(Base):
+    __tablename__ = "users"
 
-class Token(BaseModel):
-    access_token: str
-    token_type: str
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, nullable=False)
+    password_hash = Column(String, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-class TokenData(BaseModel):
-    username: str | None = None
+    __table_args__ = (
+        Index("ix_users_username", "username"),
+    )

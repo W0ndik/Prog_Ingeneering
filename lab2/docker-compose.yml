@@ -1,11 +1,28 @@
 version: '3.8'
 services:
+  db:
+    image: postgres:14
+    restart: always
+    environment:
+      POSTGRES_DB: users
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data
+
   user_service:
     build: ./user_service
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgresql+psycopg2://user:password@db:5432/users
     ports:
       - "8000:8000"
     volumes:
       - ./api_specs:/app/api_specs
+
   wall_service:
     build: ./wall_service
     ports:
@@ -13,4 +30,5 @@ services:
     volumes:
       - ./api_specs:/app/api_specs
 
-
+volumes:
+  pgdata:
