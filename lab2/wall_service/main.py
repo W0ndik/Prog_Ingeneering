@@ -12,26 +12,22 @@ SECRET_KEY = "secret"
 ALGORITHM = "HS256"
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/token")
 
-# Подключение к MongoDB
 MONGO_URL = os.getenv("MONGO_URL", "mongodb://mongo:27017")
 client = MongoClient(MONGO_URL)
 db = client["wall_db"]
 collection = db["wall"]
 
-# Создание индекса по username (если ещё не создан)
 collection.create_index([("username", ASCENDING)])
 
 app = FastAPI()
 router = APIRouter()
 
-# Тестовые данные при первом запуске
 if collection.count_documents({}) == 0:
     collection.insert_many([
         {"username": "admin", "content": "Первый пост"},
         {"username": "admin", "content": "Второй пост"}
     ])
 
-# JWT-проверка
 def verify_token(token: str = Depends(oauth2_scheme)) -> str:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -47,7 +43,6 @@ def verify_token(token: str = Depends(oauth2_scheme)) -> str:
     except JWTError:
         raise credentials_exception
 
-# Прокси для получения токена (для Swagger UI)
 @router.post("/token")
 async def proxy_token(request: Request):
     form = await request.form()
@@ -57,7 +52,6 @@ async def proxy_token(request: Request):
 
 app.include_router(router)
 
-# Добавление поста
 @app.post("/post", response_model=WallPostInDB)
 def add_post(post: WallPost, username: str = Depends(verify_token)):
     try:
@@ -72,7 +66,6 @@ def add_post(post: WallPost, username: str = Depends(verify_token)):
         raise HTTPException(status_code=500, detail="Ошибка при добавлении поста")
 
 
-# Получить все посты
 @app.get("/wall", response_model=list[WallPostInDB])
 def get_wall():
     posts = []
@@ -82,7 +75,6 @@ def get_wall():
     return posts
 
 
-# Получить пост по ID
 @app.get("/posts/{post_id}", response_model=WallPostInDB)
 def get_post(post_id: str):
     post = collection.find_one({"_id": ObjectId(post_id)})
