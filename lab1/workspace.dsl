@@ -1,118 +1,99 @@
 workspace {
-    name "Social Network Platform"
-    !identifiers hierarchical
-
+    name "FaceBook"
+    description "Социальная сеть"
+    
     model {
-        user = Person "User"
-        admin = Person "Admin"
-
-        socialNetwork = softwareSystem "Social Network Platform" {
-            users_service = container "User Service" {
-                technology "Python FastAPI"
-                tags "auth"
-                component "Authentication Management"
-                component "User Profile Management"
-            }
-
-            wall_service = container "Wall Service" {
-                technology "Python FastAPI"
-                tags "wall"
-                component "Post Management"
-                component "Wall Feed"
-            }
-
-            chat_service = container "Chat Service" {
-                technology "Python FastAPI"
-                tags "chat"
-                component "Message Management"
-                component "Chat History"
-            }
+        user = person "Пользователь" {
+            description "Активный пользователь социальной сети"
         }
-
-        user -> socialNetwork.users_service "Регистрация и аутентификация" "REST"
-        user -> socialNetwork.wall_service "Добавление записи на стену" "REST"
-        user -> socialNetwork.chat_service "Отправка сообщения" "REST"
-        admin -> socialNetwork.users_service "Управление пользователями" "REST"
-        
-        socialNetwork.wall_service -> socialNetwork.wall_service "Обновление ленты стены" "REST"
-        socialNetwork.chat_service -> socialNetwork.chat_service "Обновление истории чата" "REST"
-        
-        deploymentEnvironment "PROD" {
-            deploymentNode "Cloud" {
-                deploymentNode "Kubernetes Cluster" {
-                    api_gateway = infrastructureNode "API Gateway"
-                    db = infrastructureNode "PostgreSQL Database"
-                    
-                    users_pod = deploymentNode "users-pod" {
-                        instances 3
-                        containerInstance socialNetwork.users_service
-                    }
-                    wall_pod = deploymentNode "wall-pod" {
-                        instances 3
-                        containerInstance socialNetwork.wall_service
-                    }
-                    chat_pod = deploymentNode "chat-pod" {
-                        instances 3
-                        containerInstance socialNetwork.chat_service
-                    }
-                    
-                    api_gateway -> users_pod "Маршрутизация пользовательских запросов"
-                    api_gateway -> wall_pod "Маршрутизация запросов к стене"
-                    api_gateway -> chat_pod "Маршрутизация запросов к чату"
-                    users_pod -> db "Хранение данных пользователей"
-                    wall_pod -> db "Хранение данных стены"
-                    chat_pod -> db "Хранение данных чата"
-                }
+    
+        socialNetwork = softwareSystem "Социальная сеть" {
+            description "Распределенная платформа социального взаимодействия на основе микросервисов"
+    
+            # User Context Microservices
+            userService = container "User Service" {
+                description "Сервис управления пользователями и профилями"
+                technology "Python"
             }
+    
+            userDatabase = container "User Database" {
+                description "База данных пользовательских профилей"
+                technology "PostgreSQL"
+            }
+    
+            # Messaging Context Microservices
+            messagingService = container "Messaging Service" {
+                description "Сервис обмена сообщениями и чатов"
+                technology "Python"
+            }
+    
+            messagingDatabase = container "Messaging Database" {
+                description "База данных сообщений и чатов"
+                technology "MongoDB"
+            }
+    
+            # Social Interaction Context Microservices
+            socialInteractionService = container "Social Interaction Service" {
+                description "Сервис социальных взаимодействий"
+                technology "Python"
+            }
+    
+            socialInteractionDatabase = container "Social Interaction Database" {
+                description "База данных постов и социальных связей"
+                technology "PostgreSQL"
+            }
+    
+            # API Gateway
+            apiGateway = container "API Gateway" {
+                description "Единая точка входа для всех клиентских запросов"
+                technology "Python/FastAPI/Nginx"
+            }
+    
+            # Frontend
+            frontend = container "Web Frontend" {
+                description "Клиентское веб-приложение"
+                technology "React.js"
+            }
+    
+            # Relationships
+            user -> frontend "Взаимодействует"
+            frontend -> apiGateway "Отправляет запросы"
+            
+            apiGateway -> userService "Маршрутизация запросов пользователей"
+            apiGateway -> messagingService "Маршрутизация запросов сообщений"
+            apiGateway -> socialInteractionService "Маршрутизация социальных взаимодействий"
+    
+            userService -> userDatabase "Управление данными"
+            messagingService -> messagingDatabase "Управление сообщениями"
+            socialInteractionService -> socialInteractionDatabase "Управление взаимодействиями"
         }
     }
 
-    views {
-        themes default
-
-        systemContext socialNetwork "context" {
-            include *
-            exclude relationship.tag==video
-            autoLayout
-        }
-
-        container socialNetwork "containers" {
-            include *
-            autoLayout
-        }
-
-        component socialNetwork.users_service "users_components" {
-            include *
-            autoLayout
-        }
-
-        component socialNetwork.wall_service "wall_components" {
-            include *
-            autoLayout
-        }
-
-        component socialNetwork.chat_service "chat_components" {
-            include *
-            autoLayout
-        }
-
-        deployment * "PROD" {
-            include *
-            autoLayout
-        }
-
-        dynamic socialNetwork "post_to_wall" "Процесс добавления записи на стену" {
-            autoLayout lr
-            user -> socialNetwork.wall_service "Добавление записи на стену"
-            socialNetwork.wall_service -> socialNetwork.wall_service "Обновление ленты стены"
-            socialNetwork.wall_service -> user "Подтверждение добавления записи"
-        }
-        
-        dynamic socialNetwork "send_message" "Процесс отправки сообщения" {
-            autoLayout lr
-            user -> socialNetwork.chat_service "Отправка сообщения"
-            socialNetwork.chat_service -> socialNetwork.chat_service "Обновление истории чата"
-            socialNetwork.chat_service -> user "Подтверждение отправки сообщения"
-        }
+views {
+    systemContext socialNetwork {
+        include *
+        autoLayout lr
     }
+
+    container socialNetwork {
+        include *
+        autoLayout lr
+    }
+
+    dynamic socialNetwork {
+        user -> frontend "Регистрация"
+        frontend -> apiGateway "POST /register"
+        apiGateway -> userService "Создание профиля"
+        userService -> userDatabase "Сохранение данных"
+        autoLayout lr
+    }
+
+    dynamic socialNetwork {
+        user -> frontend "Отправка сообщения"
+        frontend -> apiGateway "POST /message"
+        apiGateway -> messagingService "Маршрутизация сообщения"
+        messagingService -> messagingDatabase "Сохранение сообщения"
+        autoLayout lr
+    }
+}
 }
