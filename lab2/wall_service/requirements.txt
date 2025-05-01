@@ -1,9 +1,0 @@
-fastapi
-python-jose
-uvicorn
-numpy
-pydantic
-bcrypt==4.0.1
-pymongo
-httpx
-python-multipart

@@ -16,8 +16,6 @@
 
 # Как проверить:
 
-Соберать докер образ:` docker build -t facebook . `
-
 Поднять docker-compose образ:` docker-compose up`
 
 Дальше: http://localhost:8000/docs и https://web.postman.com
